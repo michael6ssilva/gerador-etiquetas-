@@ -1,1 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Etiquetas</title>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
 
+  <script type="text/babel">
+    const { useState } = React;
+
+    // Componentes de ícones
+    const Upload = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>
+      </svg>
+    );
+
+    const Download = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
+      </svg>
+    );
+
+    const ArrowUpDown = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>
+      </svg>
+    );
+
+    const ClipboardPaste = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2M16 4h2a2 2 0 0 1 2 2v2M11 14h10"/><path d="m17 10 4 4-4 4"/>
+      </svg>
+    );
+
+    function GeradorEtiquetas() {
+      const [dados, setDados] = useState([]);
+      const [input, setInput] = useState('');
+
+      const processarTexto = (texto) => {
+        const linhas = texto.trim().split('\n');
+        const processados = [];
+        const nomesVistos = new Set();
+        
+        linhas.forEach((linha, index) => {
+          if (index === 0 && (linha.toLowerCase().includes('nome') || linha.toLowerCase().includes('empresa'))) {
+            return;
+          }
+          
+          let partes = linha.split('\t');
+          
+          if (partes.length < 2) {
+            partes = linha.split(/[-–—]/);
+          }
+          
+          if (partes.length < 2) {
+            partes = linha.split(',');
+          }
+          
+          if (partes.length >= 2) {
+            const nome = partes[0].trim();
+            const empresa = partes.slice(1).join('-').trim();
+            const nomeNormalizado = nome.toUpperCase();
+            
+            if (nome && empresa && !nomesVistos.has(nomeNormalizado)) {
+              nomesVistos.add(nomeNormalizado);
+              processados.push({ nome, empresa });
+            }
+          }
+        });
+        
+        if (processados.length === 0) {
+          alert('Nenhum dado encontrado. Verifique o formato:\n\nNOME - EMPRESA\nou\nNOME    EMPRESA (separado por tab)');
+          return;
+        }
+        
+        processados.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        
+        const duplicatasRemovidas = linhas.length - 1 - processados.length;
+        if (duplicatasRemovidas > 0) {
+          alert(`${processados.length} participantes processados e ordenados!\n${duplicatasRemovidas} duplicata(s) removida(s).`);
+        } else {
+          alert(`${processados.length} participantes processados e ordenados alfabeticamente!`);
+        }
+        
+        setDados(processados);
+      };
+
+      const handleProcessar = () => {
+        if (!input.trim()) {
+          alert('Cole os dados antes de processar!');
+          return;
+        }
+        processarTexto(input);
+      };
+
+      const handlePaste = (e) => {
+        const texto = e.clipboardData.getData('text');
+        setInput(texto);
+        setTimeout(() => processarTexto(texto), 100);
+      };
+
+      const gerarTabela = () => {
+        const etiquetas = [];
+        for (let i = 0; i < dados.length; i += 2) {
+          etiquetas.push(
+            <tr key={i}>
+              <td style={{
+                border: '1px solid #000',
+                padding: '12px',
+                verticalAlign: 'top',
+                width: '50%',
+                height: '60px',
+                maxHeight: '60px',
+                overflow: 'hidden'
+              }}>
+                <strong>{dados[i].nome}</strong> - {dados[i].empresa}
+              </td>
+              <td style={{
+                border: '1px solid #000',
+                padding: '12px',
+                verticalAlign: 'top',
+                width: '50%',
+                height: '60px',
+                maxHeight: '60px',
+                overflow: 'hidden'
+              }}>
+                {dados[i + 1] ? (
+                  <><strong>{dados[i + 1].nome}</strong> - {dados[i + 1].empresa}</>
+                ) : ''}
+              </td>
+            </tr>
+          );
+        }
+        return etiquetas;
+      };
+
+      const copiarParaDocs = () => {
+        const tabelaTemp = document.createElement('table');
+        tabelaTemp.style.borderCollapse = 'collapse';
+        tabelaTemp.style.width = '100%';
+        tabelaTemp.style.border = '2px solid #000';
+        
+        dados.forEach((item, i) => {
+          if (i % 2 === 0) {
+            const row = tabelaTemp.insertRow();
+            row.style.height = '60px';
+            
+            const cell1 = row.insertCell();
+            cell1.style.border = '1px solid #000';
+            cell1.style.padding = '12px';
+            cell1.style.verticalAlign = 'top';
+            cell1.style.height = '60px';
+            cell1.style.maxHeight = '60px';
+            cell1.style.overflow = 'hidden';
+            cell1.innerHTML = `<strong>${item.nome}</strong> - ${item.empresa}`;
+            
+            const cell2 = row.insertCell();
+            cell2.style.border = '1px solid #000';
+            cell2.style.padding = '12px';
+            cell2.style.verticalAlign = 'top';
+            cell2.style.height = '60px';
+            cell2.style.maxHeight = '60px';
+            cell2.style.overflow = 'hidden';
+            if (dados[i + 1]) {
+              cell2.innerHTML = `<strong>${dados[i + 1].nome}</strong> - ${dados[i + 1].empresa}`;
+            }
+          }
+        });
+        
+        document.body.appendChild(tabelaTemp);
+        
+        const range = document.createRange();
+        range.selectNode(tabelaTemp);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand('copy');
+        window.getSelection().removeAllRanges();
+        
+        document.body.removeChild(tabelaTemp);
+        
+        alert('✅ Etiquetas copiadas! Cole no Google Docs (Ctrl+V)');
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 p-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 mb-6">
+              <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                <Upload />
+                Gerador de Etiquetas
+              </h1>
+              <p className="text-blue-200 mb-6">Cole os dados da planilha direto do Excel</p>
+              
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-400/50 rounded-xl p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ClipboardPaste />
+                    <label className="block text-white font-semibold">
+                      Como usar:
+                    </label>
+                  </div>
+                  <ol className="text-blue-200 text-sm space-y-2 list-decimal list-inside">
+                    <li>Abra sua planilha do Excel</li>
+                    <li>Selecione as colunas Nome e Empresa</li>
+                    <li>Copie (Ctrl+C)</li>
+                    <li>Cole aqui no campo abaixo (Ctrl+V)</li>
+                    <li>Pronto! As etiquetas aparecem automaticamente</li>
+                  </ol>
+                </div>
+
+                <div>
+                  <label className="block text-white font-semibold mb-2">
+                    Cole os dados aqui
+                  </label>
+                  <textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onPaste={handlePaste}
+                    placeholder="Cole aqui os dados copiados do Excel&#10;&#10;Formatos aceitos:&#10;NOME    EMPRESA (tab)&#10;NOME - EMPRESA&#10;NOME, EMPRESA"
+                    className="w-full h-64 p-4 bg-white/10 border-2 border-blue-400/50 rounded-xl text-white placeholder-gray-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all font-mono text-sm"
+                  />
+                </div>
+                
+                <button
+                  onClick={handleProcessar}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-4 px-6 rounded-xl hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  <ArrowUpDown />
+                  Processar e Ordenar
+                </button>
+              </div>
+            </div>
+
+            {dados.length > 0 && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8">
+                <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                  <h2 className="text-2xl font-bold text-white">
+                    Etiquetas Geradas ({dados.length} participantes)
+                  </h2>
+                  <button
+                    onClick={copiarParaDocs}
+                    className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg flex items-center gap-2"
+                  >
+                    <Download />
+                    Copiar para Docs
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-xl p-6 overflow-auto">
+                  <table 
+                    id="tabela-etiquetas" 
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      border: '2px solid #000'
+                    }}
+                  >
+                    <tbody>
+                      {gerarTabela()}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 p-4 bg-blue-500/20 rounded-xl border border-blue-400/50">
+                  <p className="text-blue-100 text-sm">
+                    💡 Clique em "Copiar para Docs" e cole diretamente no Google Docs. A formatação será mantida!
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<GeradorEtiquetas />, document.getElementById('root'));
+  </script>
+</body>
+</html>
