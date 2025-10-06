@@ -1,1 +1,1 @@
-# gerador-etiquetas-
+# gerador-etiquetas
